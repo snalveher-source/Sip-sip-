@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="sip">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SipSip - Drink Shop</title>
+
+  <!-- Bootstrap 5 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+
+  <style>
+    :root { --berry:#e8336d; --citrus:#ffc933; --mint:#2ec4b6; --ink:#0e2a47; }
+    body { background:#f2faf8; color:var(--ink); }
+    [data-bs-theme="dark"] body { background:#0a1727; color:#e8f1f8; }
+    [data-bs-theme="dark"] .card { background:#12253b; color:#e8f1f8; }
+
+    .logo { font-weight:800; font-size:1.6rem; letter-spacing:-1px; cursor:pointer; }
+    .logo span { color:var(--berry); }
+
+    .btn-sip { background:var(--berry); color:#fff; border:0; font-weight:600; }
+    .btn-sip:hover { background:#cf2560; color:#fff; }
+    .btn-outline-sip { border:2px solid var(--berry); color:var(--berry); font-weight:600; background:transparent; }
+    .btn-outline-sip:hover, .btn-outline-sip.active { background:var(--berry); color:#fff; }
+
+    .navbar .nav-link { font-weight:600; border-radius:50px; padding:6px 16px !important; cursor:pointer; }
+    .navbar .nav-link.active { background:var(--citrus); color:var(--ink) !important; }
+
+    .hero { background:var(--citrus); color:var(--ink); border-radius:28px; padding:48px 32px; }
+    .hero h1 { font-weight:800; font-size:clamp(2.2rem,6vw,4rem); line-height:1.05; }
+    .hero-emoji { font-size:9rem; text-align:center; }
+
+    .cat-tile { border-radius:20px; padding:20px 8px; text-align:center; font-weight:700; cursor:pointer; color:var(--ink); }
+    .cat-tile div { font-size:2.4rem; }
+
+    .p-img { height:130px; display:flex; align-items:center; justify-content:center; font-size:4.2rem; }
+    .price { color:var(--berry); font-weight:800; }
+    .heart { position:absolute; top:8px; right:8px; border:0; background:#fff; border-radius:50%; width:34px; height:34px; z-index:10; cursor:pointer; }
+
+    .cart-emoji { width:54px; height:54px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.9rem; }
+    .pay-option { border:2px solid #ccc; border-radius:14px; padding:12px; text-align:center; cursor:pointer; font-weight:600; }
+    .pay-option.on { border-color:var(--berry); background:rgba(232,51,109,.1); }
+    .avatar { width:70px; height:70px; border-radius:50%; background:var(--mint); display:flex; align-items:center; justify-content:center; font-size:2rem; font-weight:800; color:var(--ink); }
+    .empty { text-align:center; padding:50px 10px; }
+    .empty .big { font-size:4rem; }
+    .toast-box { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:10px 22px; border-radius:50px; z-index:2000; font-weight:600; }
+    footer { background:var(--ink); color:#fff; margin-top:50px; padding:30px 0; text-align:center; }
+  </style>
+</head>
+
+<body ng-controller="AppCtrl">
+
+<!-- ======================= NAVBAR ======================= -->
+<nav class="navbar navbar-expand-lg sticky-top bg-body shadow-sm">
+  <div class="container">
+    <span class="navbar-brand logo" ng-click="go('home')">sip<span>sip</span></span>
+    <button class="navbar-toggler" type="button" ng-click="menuOpen = !menuOpen">&#9776;</button>
+
+    <div class="collapse navbar-collapse" ng-class="{show: menuOpen}">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item"><a class="nav-link" ng-class="{active: page=='home'}" ng-click="go('home')">🏠 Home</a></li>
+        <li class="nav-item"><a class="nav-link" ng-class="{active: page=='shop'}" ng-click="go('shop')">🥤 Shop</a></li>
+        <li class="nav-item"><a class="nav-link" ng-class="{active: page=='payment'}" ng-click="go('payment')">💳 Payment</a></li>
+        <li class="nav-item"><a class="nav-link" ng-class="{active: page=='profile'}" ng-click="go('profile')">👤 Profile</a></li>
+      </ul>
+
+      <form class="d-flex me-lg-3 my-2 my-lg-0" ng-submit="go('shop')">
+        <input class="form-control" type="search" placeholder="Search drinks..." ng-model="ui.q">
+        <button class="btn btn-sip ms-2" type="submit">Search</button>
+      </form>
+
+      <div class="d-flex gap-2 align-items-center">
+        <button class="btn btn-outline-sip" ng-click="go('cart')">
+          🛒 Cart <span class="badge bg-warning text-dark" ng-if="count() > 0">{{count()}}</span>
+        </button>
+        <button class="btn btn-sip" ng-if="!user" ng-click="go('login')">Log in</button>
+        <button class="btn btn-light" ng-click="toggleTheme()" title="Dark / light">🌓</button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<main class="container py-4">
+
+  <!-- ======================= HOME ======================= -->
+  <div ng-if="page == 'home'">
+    <section class="hero">
+      <div class="row align-items-center">
+        <div class="col-lg-7">
+          <h1>Cold hands.<br>Colder drinks.</h1>
+          <p class="lead">Bubble tea, coffee, smoothies and fresh juice made to order and delivered in about 30 minutes.</p>
+          <button class="btn btn-sip btn-lg" ng-click="go('shop')">Order a drink</button>
+          <p class="mt-3 mb-0">Use code <b>SIP10</b> for 10% off.</p>
+        </div>
+        <div class="col-lg-5 hero-emoji">🧋🍓</div>
+      </div>
+    </section>
+
+    <h3 class="mt-5 mb-3 fw-bold">Categories</h3>
+    <div class="row g-3">
+      <div class="col-4 col-md-2" ng-repeat="c in categories">
+        <div class="cat-tile shadow-sm" ng-style="{background: c.color}" ng-click="pickCategory(c.name)">
+          <div>{{c.emoji}}</div>{{c.name}}
+        </div>
+      </div>
+    </div>
+
+    <h3 class="mt-5 mb-3 fw-bold">Best sellers</h3>
+    <div class="row g-4">
+      <div class="col-6 col-lg-3" ng-repeat="p in products.slice(0,4)">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="p-img" ng-style="{background: p.color}">{{p.emoji}}</div>
+          <div class="card-body">
+            <h6 class="fw-bold">{{p.name}}</h6>
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="price">{{p.price | currency}}</span>
+              <button class="btn btn-sm btn-sip" ng-click="add(p)">+ Add</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================= SHOP ======================= -->
+  <div ng-if="page == 'shop'">
+    <h2 class="fw-bold mb-3">Shop</h2>
+
+    <div class="row g-2 mb-3">
+      <div class="col-md-8"><input class="form-control form-control-lg" type="search" placeholder="Search by name..." ng-model="ui.q"></div>
+      <div class="col-md-4">
+        <select class="form-select form-select-lg" ng-model="ui.sort">
+          <option value="">Sort: Featured</option>
+          <option value="price">Price: low to high</option>
+          <option value="-price">Price: high to low</option>
+          <option value="name">Name A-Z</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2 mb-4">
+      <button class="btn btn-sm rounded-pill" ng-repeat="c in catNames"
+              ng-class="ui.cat == c ? 'btn-sip' : 'btn-outline-sip'" ng-click="ui.cat = c">{{c}}</button>
+      <button class="btn btn-sm rounded-pill" ng-class="ui.favOnly ? 'btn-sip' : 'btn-outline-sip'"
+              ng-click="ui.favOnly = !ui.favOnly">♥️ Favourites</button>
+    </div>
+
+    <div class="empty" ng-if="(products | filter:matches).length == 0">
+      <div class="big">🫗</div>
+      <p>No drinks found. Try another word.</p>
+      <button class="btn btn-sip" ng-click="resetFilters()">Clear filters</button>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-6 col-md-4 col-lg-3" ng-repeat="p in products | filter:matches | orderBy:ui.sort">
+        <div class="card border-0 shadow-sm h-100 position-relative">
+          <button class="heart" ng-click="toggleFav(p)">{{isFav(p) ? '❤️' : '🤍'}}</button>
+          <div class="p-img" ng-style="{background: p.color}">{{p.emoji}}</div>
+          <div class="card-body d-flex flex-column">
+            <small class="text-secondary">{{p.cat}}</small>
+            <h6 class="fw-bold mb-1">{{p.name}}</h6>
+            <p class="small text-secondary flex-grow-1">{{p.desc}}</p>
+            <div class="row g-1 mb-2">
+              <div class="col-6">
+                <select class="form-select form-select-sm" ng-model="p.size">
+                  <option value="S">Small</option>
+                  <option value="M">Medium +$0.50</option>
+                  <option value="L">Large +$1.00</option>
+                </select>
+              </div>
+              <div class="col-6">
+                <select class="form-select form-select-sm" ng-model="p.sugar">
+                  <option>0%</option><option>50%</option><option>100%</option>
+                </select>
+              </div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="price">{{unitPrice(p) | currency}}</span>
+              <button class="btn btn-sm btn-sip" ng-click="add(p)">+ Add</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================= CART ======================= -->
+  <div ng-if="page == 'cart'">
+    <h2 class="fw-bold mb-3">Your cart</h2>
+
+    <div class="empty" ng-if="cart.length == 0">
+      <div class="big">🛒</div>
+      <p>Your cart is empty.</p>
+      <button class="btn btn-sip" ng-click="go('shop')">Browse drinks</button>
+    </div>
+
+    <div class="row g-4" ng-if="cart.length > 0">
+      <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+          <div class="d-flex align-items-center gap-3 p-3 border-bottom" ng-repeat="i in cart track by i.key">
+            <div class="cart-emoji" ng-style="{background: i.color}">{{i.emoji}}</div>
+            <div class="flex-grow-1">
+              <b>{{i.name}}</b>
+              <div class="small text-secondary">{{i.size}} · {{i.sugar}} sugar · {{i.price | currency}}</div>
+            </div>
+            <div class="btn-group btn-group-sm">
+              <button class="btn btn-outline-sip" ng-click="change(i, -1)">−</button>
+              <span class="btn disabled bg-light">{{i.qty}}</span>
+              <button class="btn btn-outline-sip" ng-click="change(i, 1)">+</button>
+            </div>
+            <b style="width:64px;text-align:right">{{i.price * i.qty | currency}}</b>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="card border-0 shadow-sm p-3">
+          <h5 class="fw-bold">Summary</h5>
+          <div class="d-flex justify-content-between"><span>Subtotal</span><span>{{subtotal() | currency}}</span></div>
+          <div class="d-flex justify-content-between text-success" ng-if="discount() > 0"><span>Discount</span><span>-{{discount() | currency}}</span></div>
+          <div class="d-flex justify-content-between"><span>Delivery</span><span>{{delivery() > 0 ? (delivery() | currency) : 'Free'}}</span></div>
+          <hr>
+          <div class="d-flex justify-content-between fs-5 fw-bold"><span>Total</span><span>{{total() | currency}}</span></div>
+          <div class="input-group mt-3">
+            <input class="form-control" placeholder="Promo code" ng-model="ui.code">
+            <button class="btn btn-outline-sip" ng-click="applyCoupon()">Apply</button>
+          </div>
+          <small class="text-secondary mt-1">Try SIP10 (10% off) or FREESHIP</small>
+        </div>
+        <button class="btn btn-sip btn-lg w-100 mt-3" ng-click="go('payment')">Continue to payment</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================= PAYMENT ======================= -->
+  <div ng-if="page == 'payment'">
+    <h2 class="fw-bold mb-3">Payment</h2>
+
+    <div class="empty" ng-if="pay.done">
+      <div class="big">🎉</div>
+      <h3 class="fw-bold">Payment successful!</h3>
+      <p>Order <b>#{{pay.done.id}}</b> · {{pay.done.total | currency}} · {{pay.done.method}}</p>
+      <button class="btn btn-sip me-2" ng-click="go('profile')">Track order</button>
+      <button class="btn btn-outline-sip" ng-click="go('shop')">Order more</button>
+    </div>
+
+    <div class="empty" ng-if="!pay.done && cart.length == 0">
+      <div class="big">🧾</div>
+      <p>Nothing to pay yet. Add a drink first.</p>
+      <button class="btn btn-sip" ng-click="go('shop')">Browse drinks</button>
+    </div>
+
+    <div class="row g-4" ng-if="!pay.done && cart.length > 0">
+      <div class="col-lg-8">
+        <div class="card border-0 shadow-sm p-4 mb-4">
+          <h5 class="fw-bold mb-3">Delivery details</h5>
+          <div class="row g-3">
+            <div class="col-md-6"><label class="form-label">Full name</label><input class="form-control" ng-model="pay.name"></div>
+            <div class="col-md-6"><label class="form-label">Phone</label><input class="form-control" ng-model="pay.phone"></div>
+            <div class="col-12"><label class="form-label">Address</label><input class="form-control" ng-model="pay.address"></div>
+          </div>
+        </div>
+
+        <div class="card border-0 shadow-sm p-4">
+          <h5 class="fw-bold mb-3">Payment method</h5>
+          <div class="row g-2 mb-3">
+            <div class="col-4"><div class="pay-option" ng-class="{on: pay.method=='Card'}" ng-click="pay.method='Card'">💳<br>Card</div></div>
+            <div class="col-4"><div class="pay-option" ng-class="{on: pay.method=='QR'}" ng-click="pay.method='QR'">📱<br>QR Pay</div></div>
+            <div class="col-4"><div class="pay-option" ng-class="{on: pay.method=='Cash'}" ng-click="pay.method='Cash'">💵<br>Cash</div></div>
+          </div>
+
+          <div class="row g-3" ng-if="pay.method == 'Card'">
+            <div class="col-12"><label class="form-label">Card number</label>
+              <input class="form-control" placeholder="1234 5678 9012 3456" ng-model="pay.card"></div>
+            <div class="col-6"><label class="form-label">Expiry</label>
+              <input class="form-control" placeholder="MM/YY" maxlength="5" ng-model="pay.exp"></div>
+            <div class="col-6"><label class="form-label">CVV</label>
+              <input class="form-control" type="password" maxlength="4" ng-model="pay.cvv"></div>
+          </div>
+          <div class="alert alert-info mb-0" ng-if="pay.method == 'QR'">Press "Pay now" then scan the QR code with your banking app.</div>
+          <div class="alert alert-info mb-0" ng-if="pay.method == 'Cash'">Pay the courier in cash when your drinks arrive.</div>
+          <div class="alert alert-danger mt-3 mb-0" ng-if="pay.error">{{pay.error}}</div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="card border-0 shadow-sm p-3">
+          <h5 class="fw-bold">Order</h5>
+          <div class="d-flex justify-content-between small" ng-repeat="i in cart track by i.key">
+            <span>{{i.qty}} × {{i.name}}</span><span>{{i.price * i.qty | currency}}</span>
+          </div>
+          <hr>
+          <div class="d-flex justify-content-between"><span>Delivery</span><span>{{delivery() > 0 ? (delivery() | currency) : 'Free'}}</span></div>
+          <div class="d-flex justify-content-between fs-5 fw-bold"><span>Total</span><span>{{total() | currency}}</span></div>
+        </div>
+        <button class="btn btn-sip btn-lg w-100 mt-3" ng-click="payNow()">Pay {{total() | currency}} now</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================= LOGIN / SIGN UP ======================= -->
+  <div ng-if="page == 'login'">
+    <div class="row justify-content-center">
+      <div class="col-md-6 col-lg-5">
+        <div class="card border-0 shadow-sm p-4">
+          <div class="btn-group w-100 mb-3">
+            <button class="btn btn-outline-sip" ng-class="{active: !auth.signup}" ng-click="auth.signup=false; auth.error=''">Log in</button>
+            <button class="btn btn-outline-sip" ng-class="{active: auth.signup}" ng-click="auth.signup=true; auth.error=''">Sign up</button>
+          </div>
+          <div class="mb-3" ng-if="auth.signup"><label class="form-label">Full name</label><input class="form-control" ng-model="auth.name"></div>
+          <div class="mb-3"><label class="form-label">Email</label><input class="form-control" type="email" ng-model="auth.email"></div>
+          <div class="mb-3"><label class="form-label">Password</label><input class="form-control" type="password" ng-model="auth.pass"></div>
+          <div class="alert alert-danger py-2" ng-if="auth.error">{{auth.error}}</div>
+          <button class="btn btn-sip btn-lg w-100" ng-click="submitAuth()">{{auth.signup ? 'Create account' : 'Log in'}}</button>
+          <small class="text-secondary mt-3">Demo only: accounts are saved in this browser.</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================= PROFILE ======================= -->
+  <div ng-if="page == 'profile'">
+    <div class="empty" ng-if="!user">
+      <div class="big">🔐</div>
+      <p>Log in to see your profile and orders.</p>
+      <button class="btn btn-sip" ng-click="go('login')">Log in / Sign up</button>
+    </div>
+
+    <div ng-if="user">
+      <div class="d-flex align-items-center gap-3 mb-4">
+        <div class="avatar">{{user.name.charAt(0).toUpperCase()}}</div>
+        <div class="flex-grow-1">
+          <h2 class="fw-bold mb-0">{{user.name}}</h2>
+          <span class="text-secondary">{{user.email}}</span>
+        </div>
+        <button class="btn btn-outline-sip" ng-click="logout()">Log out</button>
+      </div>
+
+      <div class="btn-group mb-3">
+        <button class="btn btn-outline-sip" ng-class="{active: ui.tab=='details'}" ng-click="ui.tab='details'">My details</button>
+        <button class="btn btn-outline-sip" ng-class="{active: ui.tab=='orders'}" ng-click="ui.tab='orders'">Orders</button>
+        <button class="btn btn-outline-sip" ng-class="{active: ui.tab=='favs'}" ng-click="ui.tab='favs'">Favourites</button>
+      </div>
+
+      <div class="card border-0 shadow-sm p-4" ng-if="ui.tab == 'details'">
+        <div class="row g-3">
+          <div class="col-md-6"><label class="form-label">Name</label><input class="form-control" ng-model="edit.name"></div>
+          <div class="col-md-6"><label class="form-label">Email</label><input class="form-control" ng-model="edit.email" disabled></div>
+          <div class="col-md-6"><label class="form-label">Phone</label><input class="form-control" ng-model="edit.phone"></div>
+          <div class="col-md-6"><label class="form-label">Address</label><input class="form-control" ng-model="edit.address"></div>
+          <div class="col-12"><button class="btn btn-sip" ng-click="saveProfile()">Save changes</button></div>
+        </div>
+      </div>
+
+      <div ng-if="ui.tab == 'orders'">
+        <div class="empty" ng-if="myOrders().length == 0"><div class="big">🧾</div><p>No orders yet.</p></div>
+        <div class="card border-0 shadow-sm p-3 mb-3" ng-repeat="o in myOrders() track by o.id">
+          <div class="d-flex justify-content-between"><b>Order #{{o.id}}</b><b>{{o.total | currency}}</b></div>
+          <div class="small text-secondary mb-2">{{o.date | date:'medium'}} · {{o.items}} items · {{o.method}}</div>
+          <div class="progress" style="height:8px"><div class="progress-bar bg-success" ng-style="{width: stage(o).pct + '%'}"></div></div>
+          <div class="small fw-bold mt-1">{{stage(o).label}}</div>
+        </div>
+      </div>
+
+      <div ng-if="ui.tab == 'favs'">
+        <div class="empty" ng-if="favProducts().length == 0"><div class="big">💔</div><p>Tap the heart on a drink to save it.</p></div>
+        <div class="row g-3">
+          <div class="col-6 col-md-3" ng-repeat="p in favProducts()">
+            <div class="card border-0 shadow-sm text-center p-3">
+              <div style="font-size:3rem">{{p.emoji}}</div><b>{{p.name}}</b>
+              <button class="btn btn-sm btn-sip mt-2" ng-click="add(p)">+ Add</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <div class="logo">sip<span>sip</span></div>
+  <small>© 2026 SipSip · Demo project, payments are simulated.</small>
+</footer>
+
+<div class="toast-box" ng-if="toast">{{toast}}</div>
+
+<!-- AngularJS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.8.3/angular.min.js"></script>
+
+<script>
+  var app = angular.module('sip', []);
+
+  app.controller('AppCtrl', function ($scope, $timeout) {
+
+    function load(key, fallback) {
+      try { var v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+      catch (e) { return fallback; }
+    }
+    function save(key, value) {
+      try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+    }
+    function notify(msg) {
+      $scope.toast = msg;
+      $timeout(function () { $scope.toast = ''; }, 1800);
+    }
+
+    $scope.page = 'home';
+    $scope.menuOpen = false;
+    $scope.toast = '';
+    $scope.ui = { q: '', cat: 'All', sort: '', favOnly: false, code: '', tab: 'details' };
+
+    $scope.categories = [
+      { name: 'Tea',      emoji: '🧋', color: '#ffe0a3' },
+      { name: 'Coffee',   emoji: '☕️', color: '#e6d3c3' },
+      { name: 'Smoothie', emoji: '🍓', color: '#ffc9d6' },
+      { name: 'Juice',    emoji: '🍊', color: '#ffd29c' },
+      { name: 'Soda',     emoji: '🍋', color: '#bfe3ff' },
+      { name: 'Hot',      emoji: '🍫', color: '#d9bfae' }
+    ];
+    $scope.catNames = ['All'].concat($scope.categories.map(function (c) { return c.name; }));
+
+    $scope.products = [
+      { id: 1,  name: 'Brown Sugar Boba',    emoji: '🧋', cat: 'Tea',      price: 3.5, color: '#ffe0a3', desc: 'Milk tea with tapioca pearls and brown sugar.' },
+      { id: 2,  name: 'Matcha Latte',        emoji: '🍵', cat: 'Tea',      price: 3.9, color: '#cdeccb', desc: 'Matcha shaken with oat milk.' },
+      { id: 3,  name: 'Iced Americano',      emoji: '☕️', cat: 'Coffee',   price: 2.8, color: '#e6d3c3', desc: 'Double espresso over ice.' },
+      { id: 4,  name: 'Caramel Frappe',      emoji: '🥤', cat: 'Coffee',   price: 4.2, color: '#f5d9b8', desc: 'Blended coffee with caramel and cream.' },
+      { id: 5,  name: 'Strawberry Smoothie', emoji: '🍓', cat: 'Smoothie', price: 4.0, color: '#ffc9d6', desc: 'Fresh strawberries, yogurt and honey.' },
+      { id: 6,  name: 'Mango Coconut',       emoji: '🥭', cat: 'Smoothie', price: 4.0, color: '#ffe08a', desc: 'Ripe mango blended with coconut milk.' },
+      { id: 7,  name: 'Fresh Orange Juice',  emoji: '🍊', cat: 'Juice',    price: 3.0, color: '#ffd29c', desc: 'Cold-pressed oranges, nothing else.' },
+      { id: 8,  name: 'Watermelon Splash',   emoji: '🍉', cat: 'Juice',    price: 2.9, color: '#ffc2c2', desc: 'Watermelon and mint.' },
+      { id: 9,  name: 'Young Coconut',       emoji: '🥥', cat: 'Juice',    price: 2.5, color: '#e3f1e6', desc: 'Coconut water with a scoop of flesh.' },
+      { id: 10, name: 'Lemon Mint Soda',     emoji: '🍋', cat: 'Soda',     price: 2.4, color: '#f6f0a3', desc: 'Sparkling water, lemon and mint.' },
+      { id: 11, name: 'Blue Lagoon',         emoji: '🫧', cat: 'Soda',     price: 2.8, color: '#bfe3ff', desc: 'Blue citrus fizz with popping bubbles.' },
+      { id: 12, name: 'Hot Chocolate',       emoji: '🍫', cat: 'Hot',      price: 3.2, color: '#d9bfae', desc: 'Dark cocoa with marshmallows.' }
+    ];
+    $scope.products.forEach(function (p) { p.size = 'M'; p.sugar = '50%'; });
+
+    $scope.cart   = load('sip_cart', []);
+    $scope.orders = load('sip_orders', []);
+    $scope.favs   = load('sip_favs', []);
+    $scope.coupon = null;
+
+    $scope.user   = load('sip_user', null);
+    $scope.auth   = { signup: false, name: '', email: '', pass: '', error: '' };
+    $scope.pay    = { name: '', phone: '', address: '', method: 'Card', card: '', exp: '', cvv: '', error: '', done: null };
+    $scope.edit   = {};
+
+    function prefillPayment() {
+      if ($scope.user) {
+        $scope.pay.name = $scope.user.name || '';
+        $scope.pay.phone = $scope.user.phone || '';
+        $scope.pay.address = $scope.user.address || '';
+      }
+    }
+
+    $scope.go = function (page) {
+      $scope.page = page;
+      $scope.menuOpen = false;
+      window.scrollTo(0, 0);
+      if (page === 'payment') { $scope.pay.done = null; $scope.pay.error = ''; prefillPayment(); }
+      if (page === 'profile' && $scope.user) { $scope.edit = angular.copy($scope.user); }
+    };
+    $scope.pickCategory = function (name) { $scope.ui.cat = name; $scope.go('shop'); };
+    $scope.resetFilters = function () { $scope.ui.q = ''; $scope.ui.cat = 'All'; $scope.ui.favOnly = false; };
+    $scope.toggleTheme = function () {
+      var r = document.documentElement;
+      r.setAttribute('data-bs-theme', r.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark');
+    };
+
+    $scope.matches = function (p) {
+      var q = ($scope.ui.q || '').toLowerCase();
+      var okCat = ($scope.ui.cat === 'All') || (p.cat === $scope.ui.cat);
+      var okFav = !$scope.ui.favOnly || $scope.isFav(p);
+      var okText = !q || (p.name + ' ' + p.desc + ' ' + p.cat).toLowerCase().indexOf(q) > -1;
+      return okCat && okFav && okText;
+    };
+
+    $scope.isFav = function (p) { return $scope.favs.indexOf(p.id) > -1; };
+    $scope.toggleFav = function (p) {
+      var i = $scope.favs.indexOf(p.id);
+      if (i > -1) $scope.favs.splice(i, 1); else $scope.favs.push(p.id);
+      save('sip_favs', $scope.favs);
+      notify($scope.isFav(p) ? 'Added to favourites' : 'Removed from favourites');
+    };
+    $scope.favProducts = function () { return $scope.products.filter($scope.isFav); };
+
+    $scope.unitPrice = function (p) {
+      var addOn = p.size === 'L' ? 1.0 : (p.size === 'M' ? 0.5 : 0);
+      return p.price + addOn;
+    };
+
+    $scope.add = function (p) {
+      var up = $scope.unitPrice(p);
+      var key = p.id + '-' + p.size + '-' + p.sugar;
+      var found = null;
+      for (var i = 0; i < $scope.cart.length; i++) {
+        if ($scope.cart[i].key === key) { found = $scope.cart[i]; break; }
+      }
+      if (found) {
+        found.qty += 1;
+      } else {
+        $scope.cart.push({
+          key: key, id: p.id, name: p.name, emoji: p.emoji, color: p.color,
+          size: p.size, sugar: p.sugar, price: up, qty: 1
+        });
+      }
+      save('sip_cart', $scope.cart);
+      notify('Added ' + p.name + ' to cart!');
+    };
+
+    $scope.change = function (i, delta) {
+      i.qty += delta;
+      if (i.qty <= 0) {
+        var idx = $scope.cart.indexOf(i);
+        if (idx > -1) $scope.cart.splice(idx, 1);
+      }
+      save('sip_cart', $scope.cart);
+    };
+
+    $scope.count = function () {
+      return $scope.cart.reduce(function (sum, i) { return sum + i.qty; }, 0);
+    };
+
+    $scope.subtotal = function () {
+      return $scope.cart.reduce(function (sum, i) { return sum + (i.price * i.qty); }, 0);
+    };
+
+    $scope.discount = function () {
+      if (!$scope.coupon) return 0;
+      if ($scope.coupon === 'SIP10') return $scope.subtotal() * 0.1;
+      return 0;
+    };
+
+    $scope.delivery = function () {
+      if ($scope.coupon === 'FREESHIP') return 0;
+      return $scope.subtotal() > 0 ? 2.99 : 0;
+    };
+
+    $scope.total = function () {
+      var t = $scope.subtotal() - $scope.discount() + $scope.delivery();
+      return t > 0 ? t : 0;
+    };
+
+    $scope.applyCoupon = function () {
+      var code = ($scope.ui.code || '').trim().toUpperCase();
+      if (code === 'SIP10' || code === 'FREESHIP') {
+        $scope.coupon = code;
+        notify('Coupon ' + code + ' applied!');
+      } else {
+        notify('Invalid promo code');
+      }
+    };
+
+    $scope.submitAuth = function () {
+      if (!$scope.auth.email || !$scope.auth.pass) {
+        $scope.auth.error = 'Please fill in all fields.';
+        return;
+      }
+      if ($scope.auth.signup && !$scope.auth.name) {
+        $scope.auth.error = 'Please provide your name.';
+        return;
+      }
+      $scope.user = {
+        name: $scope.auth.signup ? $scope.auth.name : $scope.auth.email.split('@')[0],
+        email: $scope.auth.email,
+        phone: '',
+        address: ''
+      };
+      save('sip_user', $scope.user);
+      $scope.go('home');
+      notify('Welcome back, ' + $scope.user.name + '!');
+    };
+
+    $scope.logout = function () {
+      $scope.user = null;
+      localStorage.removeItem('sip_user');
+      $scope.go('home');
+      notify('Logged out successfully');
+    };
+
+    $scope.saveProfile = function () {
+      $scope.user.name = $scope.edit.name;
+      $scope.user.phone = $scope.edit.phone;
+      $scope.user.address = $scope.edit.address;
+      save('sip_user', $scope.user);
+      notify('Profile updated!');
+    };
+
+    $scope.payNow = function () {
+      if (!$scope.pay.name || !$scope.pay.phone || !$scope.pay.address) {
+        $scope.pay.error = 'Please complete all delivery details.';
+        return;
+      }
+      var newOrder = {
+        id: Math.floor(100000 + Math.random() * 900000),
+        date: new Date().getTime(),
+        total: $scope.total(),
+        items: $scope.count(),
+        method: $scope.pay.method,
+        statusTime: new Date().getTime()
+      };
+      $scope.orders.unshift(newOrder);
+      save('sip_orders', $scope.orders);
+
+      $scope.pay.done = newOrder;
+      $scope.cart = [];
+      save('sip_cart', []);
+    };
+
+    $scope.myOrders = function () {
+      return $scope.orders;
+    };
+
+    $scope.stage = function (o) {
+      var diff = (new Date().getTime() - o.date) / 1000;
+      if (diff < 15) return { pct: 25, label: 'Order confirmed & being prepared 🥤' };
+      if (diff < 30) return { pct: 60, label: 'Out for delivery 🚴' };
+      return { pct: 100, label: 'Delivered successfully 🎉' };
+    };
+  });
+</script>
+</body>
+</html>
